@@ -1,0 +1,11 @@
+.book-venv/
+.trans-venv/
+.openai-venv/
+*.pdf
+*.mp3
+*.mp4
+*.jpg
+*.png
+*.jpeg
+.env 
+*.env

@@ -1,0 +1,6 @@
+2024-11-25 17:03:37,951 - INFO - Processing JSON file: /Users/sauravmanitripathi/Desktop/pdf-screenshot/json-book/commodity-pricing.json
+2024-11-25 17:03:37,959 - INFO - JSONL file saved: ./jsonl-output/commodity-pricing.jsonl
+2024-11-25 17:03:37,960 - INFO - Processing complete.
+2024-11-26 13:26:02,402 - INFO - Processing JSON file: /Users/sauravmanitripathi/Desktop/pdf-screenshot/json-book/judgement-that-changed-india.json
+2024-11-26 13:26:02,412 - INFO - JSONL file saved: ./jsonl-output/judgement-that-changed-india.jsonl
+2024-11-26 13:26:02,412 - INFO - Processing complete.
