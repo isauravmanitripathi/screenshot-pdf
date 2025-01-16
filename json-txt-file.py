@@ -54,5 +54,5 @@ def extract_chapters_to_files(json_file_path, output_directory):
 
 if __name__ == "__main__":
     json_file_path = input("Enter the path of the JSON file: ").strip()
-    output_directory = '/Users/sauravmanitripathi/Desktop/podcast_voice/txt-pro-file'
+    output_directory = 'txt-pro-file'
     extract_chapters_to_files(json_file_path, output_directory)
