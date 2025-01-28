@@ -4,7 +4,7 @@ from openai import OpenAI
 # Initialize OpenAI client
 client = OpenAI()
 
-def process_json_and_rewrite(file_path, output_file):
+def process_json_and_extract_keypoints(file_path, output_file):
     # Open the JSON file
     with open(file_path, 'r') as f:
         data = json.load(f)
@@ -23,25 +23,22 @@ def process_json_and_rewrite(file_path, output_file):
 
                 if extracted_text:
                     try:
-                        # Send the extracted text to OpenAI API
+                        # Send the extracted text to OpenAI API with updated prompt
                         completion = client.chat.completions.create(
                             model="gpt-4o-mini",
                             messages=[
-                                {"role": "system", "content": "You are a helpful assistant that rewrites content."},
-                                {"role": "user", "content": extracted_text}
+                                {"role": "system", "content": "You are an assistant that extracts key points from the provided text."},
+                                {"role": "user", "content": f"Please read the following text and provide the main key points:\n\n{extracted_text}"}
                             ]
                         )
 
-                        # Extract the rewritten text from the response
-                        if hasattr(completion.choices[0], 'message'):
-                            rewritten_text = completion.choices[0].message.content
-                        else:
-                            raise AttributeError("Unexpected response structure: 'message' attribute is missing.")
+                        # Extract the key points from the response
+                        key_points = completion.choices[0].message.content
 
-                        # Write the rewritten text to the output file
+                        # Write the key points to the output file
                         output.write(f"Chapter: {chapter_name}\n")
                         output.write(f"Section: {section_name}\n")
-                        output.write(f"Rewritten Text:\n{rewritten_text}\n")
+                        output.write(f"Key Points:\n{key_points}\n")
                         output.write("\n" + "="*50 + "\n\n")  # Separator between sections
                         print(f"Processed: {chapter_name} -> {section_name}")
 
@@ -51,5 +48,5 @@ def process_json_and_rewrite(file_path, output_file):
 if __name__ == "__main__":
     input_json = input("Enter the path to the JSON file: ")
     output_txt = input("Enter the path for the output TXT file: ")
-    process_json_and_rewrite(input_json, output_txt)
-    print(f"Rewriting completed. Results saved in {output_txt}.")
+    process_json_and_extract_keypoints(input_json, output_txt)
+    print(f"Key points extraction completed. Results saved in {output_txt}.")
