@@ -7,6 +7,7 @@
 *.jpg
 *.png
 *.jpeg
-.env 
+.env
 *.env
 *.venv
+/json-book/
