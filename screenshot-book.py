@@ -11,6 +11,16 @@ import queue
 import signal
 import time
 
+# --- Rich Imports ---
+from rich import print
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.progress import track
+
+# Create a console object for Rich
+console = Console()
+
 # Constants
 BASE_SCREENSHOTS_DIR = './screenshots-images-2'
 JSON_DIR = './json-book'
@@ -19,6 +29,7 @@ TEMP_DIR = './temp_screenshots'
 # Create necessary directories
 for directory in [BASE_SCREENSHOTS_DIR, JSON_DIR, TEMP_DIR]:
     os.makedirs(directory, exist_ok=True)
+
 
 class SharedState:
     def __init__(self):
@@ -29,6 +40,7 @@ class SharedState:
         self.lock = threading.Lock()
         self.command_queue = queue.Queue()
         self.running = True
+
 
 class KeyboardListener:
     def __init__(self, shared_state: SharedState):
@@ -66,19 +78,24 @@ class KeyboardListener:
                 if self.context == "main":
                     if char in ['s', 'w', 'r', 'c', 'q']:
                         self.shared_state.command_queue.put(char)
-                        self._show_contextual_help(f"Command registered: {char}")
+                        self._show_contextual_help(
+                            f"[bold green]Command registered:[/bold green] [yellow]{char}[/yellow]"
+                        )
                 elif self.context == "name_capture":
                     if char in ['a', 'd']:
+                        # If there's a timer, cancel it because we are about to track a double-press
                         if self.single_press_timer:
                             self.single_press_timer.cancel()
                             self.single_press_timer = None
 
                         if (current_time - self.last_key_time <= self.double_press_threshold and 
                             self.manual_input_buffer == char):
+                            # Double press
                             self.shared_state.command_queue.put(char + char)
                             self.manual_input_buffer = ""
                             self.last_key_time = 0
                         else:
+                            # Single press start
                             self.manual_input_buffer = char
                             self.last_key_time = current_time
                             self.single_press_timer = threading.Timer(
@@ -96,21 +113,32 @@ class KeyboardListener:
         self._show_contextual_help()
 
     def _show_contextual_help(self, message: str = None):
+        """Prints instructions based on context, using Rich for styling."""
         if message:
-            print(f"\n{message}")
+            console.print(Panel(message, title="Info", style="bold cyan"))
 
         if self.context == "main":
-            print("\nAvailable commands:")
-            print(" s: Capture screenshot")
-            print(" w: Capture code screenshot")
-            print(" r: New section")
-            print(" c: New chapter")
-            print(" q: Quit program")
+            console.print(Panel(
+                "\n[bold]Available commands:[/bold]\n"
+                " [green]s[/green]: Capture screenshot\n"
+                " [green]w[/green]: Capture [italic]code[/italic] screenshot\n"
+                " [green]r[/green]: New section\n"
+                " [green]c[/green]: New chapter\n"
+                " [green]q[/green]: Quit program\n",
+                title="Main Context",
+                style="bold magenta"
+            ))
+
         elif self.context == "name_capture":
-            print("\nCapture name:")
-            print(" a: Capture chapter name")
-            print(" d: Capture section name")
-            print("Type 'aa' or 'dd' to enter name manually")
+            console.print(Panel(
+                "\n[bold]Capture name:[/bold]\n"
+                " [green]a[/green]: Capture chapter name\n"
+                " [green]d[/green]: Capture section name\n\n"
+                " [italic]Type 'aa' or 'dd' to enter name manually[/italic]",
+                title="Name Capture",
+                style="bold magenta"
+            ))
+
 
 class ScreenshotHandler:
     def __init__(self, shared_state: SharedState, json_file_path: str):
@@ -120,7 +148,7 @@ class ScreenshotHandler:
     def add_image_to_section(self, file_path: str, image_type: str = 'images'):
         with self.shared_state.lock:
             if self.shared_state.current_section_path is None:
-                print("No active section to add the image.")
+                console.print("[bold red]No active section to add the image.[/bold red]")
                 return
 
             unique_name = f"{uuid.uuid4()}{os.path.splitext(file_path)[1]}"
@@ -130,7 +158,7 @@ class ScreenshotHandler:
                 if os.path.abspath(file_path) != os.path.abspath(new_file_path):
                     os.rename(file_path, new_file_path)
             except Exception as e:
-                print(f"Error moving file: {e}")
+                console.print(f"[bold red]Error moving file:[/bold red] {e}")
                 return
 
             chapter_index = self.shared_state.current_chapter_index
@@ -143,14 +171,24 @@ class ScreenshotHandler:
                 json.dump(self.shared_state.data, f, indent=4)
 
         image_type_display = "code image" if image_type == "code_images" else "image"
-        print(f"\nAdded {image_type_display} '{unique_name}' to section '{section['section_name']}' (ID: {section['section_id']})")
-        threading.Thread(target=self.verify_image, args=(new_file_path, chapter_index, section_index)).start()
+        console.print(
+            Panel(
+                f"Added [bold]{image_type_display}[/bold] '[cyan]{unique_name}[/cyan]' "
+                f"to section '[bold]{section['section_name']}[/bold]' (ID: {section['section_id']})",
+                title="Image Added",
+                style="green"
+            )
+        )
+        threading.Thread(
+            target=self.verify_image,
+            args=(new_file_path, chapter_index, section_index)
+        ).start()
 
     def verify_image(self, image_path: str, chapter_index: int, section_index: int):
         try:
             with Image.open(image_path) as img:
                 img.verify()
-            print(f"Verified image: {os.path.basename(image_path)} - OK")
+            console.log(f"Verified image: {os.path.basename(image_path)} - [green]OK[/green]")
 
             with self.shared_state.lock:
                 section = self.shared_state.data["New item"]["chapters"][chapter_index]["sections"][section_index]
@@ -160,7 +198,7 @@ class ScreenshotHandler:
                     json.dump(self.shared_state.data, f, indent=4)
         except Exception as e:
             error_message = f"Error verifying image {image_path}: {e}"
-            print(error_message)
+            console.log(f"[red]{error_message}[/red]")
 
             with self.shared_state.lock:
                 section = self.shared_state.data["New item"]["chapters"][chapter_index]["sections"][section_index]
@@ -169,25 +207,28 @@ class ScreenshotHandler:
                 with open(self.json_file_path, 'w') as f:
                     json.dump(self.shared_state.data, f, indent=4)
 
+
 def capture_screenshot_mac(target_path: str) -> Optional[str]:
     try:
         subprocess.run(['screencapture', '-i', target_path], check=True)
         return target_path
     except subprocess.CalledProcessError as e:
-        print(f"Failed to capture screenshot: {e}")
+        console.print(f"[bold red]Failed to capture screenshot:[/bold red] {e}")
         return None
+
 
 def extract_text_from_image(image_path: str) -> Optional[str]:
     if not os.path.exists(image_path):
-        print(f"Image file not found: {image_path}")
+        console.print(f"[bold red]Image file not found:[/bold red] {image_path}")
         return None
     try:
         with Image.open(image_path) as img:
             text = pytesseract.image_to_string(img).strip()
             return text
     except Exception as e:
-        print(f"Error extracting text from image {image_path}: {e}")
+        console.print(f"[bold red]Error extracting text from image[/bold red] {image_path}: {e}")
         return None
+
 
 def process_section(shared_state: SharedState, json_file_path: str, chapter_index: int, section_index: int):
     with shared_state.lock:
@@ -200,40 +241,52 @@ def process_section(shared_state: SharedState, json_file_path: str, chapter_inde
         image_paths = list(image_paths)
         code_image_paths = list(code_image_paths)
 
-    print(f"\nProcessing Section: '{section_name}' (ID: {section_id}) in Chapter: '{chapter_name}'")
-    print(f"Found {len(image_paths)} images and {len(code_image_paths)} code images to process...")
+    console.print(Panel(
+        f"Processing Section: '[bold]{section_name}[/bold]' (ID: {section_id})\n"
+        f"In Chapter: '[bold]{chapter_name}[/bold]'",
+        title="Section Processing",
+        style="bold cyan"
+    ))
+    console.print(f"Found {len(image_paths)} images and {len(code_image_paths)} code images to process...")
 
     def extract_texts(image_list: List[str], type_name: str) -> str:
         texts = []
         total = len(image_list)
-        for idx, image_path in enumerate(image_list, 1):
+        # Use Rich track() to show progress:
+        for idx, image_path in track(enumerate(image_list, 1), total=total, description=f"Extracting {type_name}"):
             try:
-                print(f"Processing {type_name} {idx}/{total}: {os.path.basename(image_path)}")
+                filename = os.path.basename(image_path)
+                console.log(f"Processing {type_name} {idx}/{total}: [cyan]{filename}[/cyan]")
                 with Image.open(image_path) as img:
                     text = pytesseract.image_to_string(img)
                     texts.append(text)
             except Exception as e:
                 error_message = f"Error extracting text from image {image_path}: {e}"
-                print(error_message)
+                console.log(f"[bold red]{error_message}[/bold red]")
                 with shared_state.lock:
                     section.setdefault("errors", []).append(error_message)
         return "\n".join(texts)
 
-    print("\nExtracting text from regular images...")
+    console.print("[bold green]\nExtracting text from regular images...[/bold green]")
     section["extracted-text"] = extract_texts(image_paths, "image")
 
-    print("\nExtracting text from code images...")
+    console.print("[bold green]\nExtracting text from code images...[/bold green]")
     section["extracted-code"] = extract_texts(code_image_paths, "code image")
 
     with shared_state.lock:
         with open(json_file_path, 'w') as f:
             json.dump(shared_state.data, f, indent=4)
 
-    print(f"\nFinished Processing Section: '{section_name}' (ID: {section_id})")
-    print(f"Saved results to JSON file: {json_file_path}")
+    console.print(Panel(
+        f"Finished Processing Section: '[bold]{section_name}[/bold]' (ID: {section_id})\n"
+        f"Saved results to JSON file: {json_file_path}",
+        title="Section Processing Completed",
+        style="bold green"
+    ))
+
 
 def get_name(shared_state: SharedState, capture_key: str, manual_key: str, prompt_instructions: str) -> Optional[str]:
-    print(prompt_instructions)
+    console.print(Panel(prompt_instructions, style="bold magenta"))
 
     while True:
         try:
@@ -245,29 +298,33 @@ def get_name(shared_state: SharedState, capture_key: str, manual_key: str, promp
                 if capture_screenshot_mac(image_path):
                     name = extract_text_from_image(image_path)
                     if name:
-                        print(f"\nExtracted name: '{name}'")
+                        console.print(f"\n[bold green]Extracted name:[/bold green] '[yellow]{name}[/yellow]'")
                         return name
                     else:
-                        print("\nNo text extracted from image. Please try again.")
+                        console.print("\n[bold red]No text extracted from image. Please try again.[/bold red]")
                 else:
-                    print("\nFailed to capture screenshot. Please try again.")
+                    console.print("\n[bold red]Failed to capture screenshot. Please try again.[/bold red]")
             elif cmd == manual_key:
                 name = input("Enter the name manually: ").strip()
-                print(f"\nEntered name: '{name}'")
+                console.print(f"[bold green]\nEntered name:[/bold green] '[yellow]{name}[/yellow]'")
                 return name
 
         except queue.Empty:
             continue
 
+
 def cleanup_and_quit(shared_state: SharedState, json_file_path: str, keyboard_listener: KeyboardListener):
-    print("\nInitiating cleanup process...")
+    console.print(Panel("Initiating cleanup process...", style="bold yellow"))
 
     with shared_state.lock:
         prev_chapter_index = shared_state.current_chapter_index
         prev_section_index = shared_state.current_section_index
 
         if prev_section_index >= 0:
-            print("\nProcessing final section before quitting...")
+            console.print(Panel(
+                "Processing final section before quitting...",
+                style="bold cyan", title="Final Section"
+            ))
             thread = threading.Thread(
                 target=process_section,
                 args=(shared_state, json_file_path, prev_chapter_index, prev_section_index)
@@ -275,17 +332,18 @@ def cleanup_and_quit(shared_state: SharedState, json_file_path: str, keyboard_li
             thread.start()
             thread.join(timeout=20)
             if thread.is_alive():
-                print("Processing final section is taking too long. Proceeding with cleanup.")
+                console.print("[bold red]Processing final section is taking too long. Proceeding with cleanup.[/bold red]")
 
-        print("\nSaving final state to JSON file...")
+        console.print("[bold]Saving final state to JSON file...[/bold]")
         with open(json_file_path, 'w') as f:
             json.dump(shared_state.data, f, indent=4)
 
-    print("\nStopping keyboard listener...")
+    console.print("[bold]Stopping keyboard listener...[/bold]")
     keyboard_listener.stop()
 
-    print("\nCleanup complete! Program terminated successfully.")
+    console.print(Panel("Cleanup complete! Program terminated successfully.", style="bold green"))
     shared_state.running = False
+
 
 def handle_section_creation(shared_state: SharedState, keyboard_listener: KeyboardListener, json_file_path: str):
     prev_chapter_index = shared_state.current_chapter_index
@@ -298,7 +356,7 @@ def handle_section_creation(shared_state: SharedState, keyboard_listener: Keyboa
         ).start()
 
     keyboard_listener.set_context("name_capture")
-    section_name = get_name(shared_state, 'd', 'dd', "Capture section name (d/dd)")
+    section_name = get_name(shared_state, 'd', 'dd', "Capture section name ([bold green]d[/bold green]/[bold green]dd[/bold green])")
     keyboard_listener.set_context("main")
 
     with shared_state.lock:
@@ -322,7 +380,12 @@ def handle_section_creation(shared_state: SharedState, keyboard_listener: Keyboa
             "extracted-text": "",
             "extracted-code": ""
         })
-    print(f"\nMoved to New Section: '{section_name}' (ID: {section_id})")
+
+    console.print(Panel(
+        f"Moved to New Section: '[bold]{section_name}[/bold]' (ID: {section_id})",
+        style="bold green"
+    ))
+
 
 def handle_chapter_creation(shared_state: SharedState, keyboard_listener: KeyboardListener, json_file_path: str):
     prev_chapter_index = shared_state.current_chapter_index
@@ -335,7 +398,7 @@ def handle_chapter_creation(shared_state: SharedState, keyboard_listener: Keyboa
         ).start()
 
     keyboard_listener.set_context("name_capture")
-    chapter_name = get_name(shared_state, 'a', 'aa', "Capture chapter name (a/aa)")
+    chapter_name = get_name(shared_state, 'a', 'aa', "Capture chapter name ([bold green]a[/bold green]/[bold green]aa[/bold green])")
     keyboard_listener.set_context("main")
 
     with shared_state.lock:
@@ -353,7 +416,7 @@ def handle_chapter_creation(shared_state: SharedState, keyboard_listener: Keyboa
         })
 
     keyboard_listener.set_context("name_capture")
-    section_name = get_name(shared_state, 'd', 'dd', "Capture section name (d/dd)")
+    section_name = get_name(shared_state, 'd', 'dd', "Capture section name ([bold green]d[/bold green]/[bold green]dd[/bold green])")
     keyboard_listener.set_context("main")
 
     with shared_state.lock:
@@ -374,11 +437,21 @@ def handle_chapter_creation(shared_state: SharedState, keyboard_listener: Keyboa
             "extracted-text": "",
             "extracted-code": ""
         })
-    print(f"\nMoved to New Chapter: '{chapter_name}' (ID: {chapter_id})\nCurrent Section: '{section_name}' (ID: {section_id})")
+
+    console.print(Panel(
+        f"Moved to New Chapter: '[bold]{chapter_name}[/bold]' (ID: {chapter_id})\n"
+        f"Current Section: '[bold]{section_name}[/bold]' (ID: {section_id})",
+        style="bold green"
+    ))
+
 
 def main():
-    print("\nWelcome to the Screenshot and OCR Program!")
-    print("\nThis version supports single-key commands - no need to press Enter!")
+    console.print(Panel(
+        "Welcome to the [bold magenta]Screenshot and OCR Program![/bold magenta]\n"
+        "This version supports single-key commands (no need to press Enter)!",
+        title="Startup",
+        style="bold cyan"
+    ))
 
     choice = input("Create a new JSON file or use an existing one? (new/existing): ").strip().lower()
 
@@ -394,7 +467,7 @@ def main():
         keyboard_listener.start()
 
         keyboard_listener.set_context("name_capture")
-        chapter_name = get_name(shared_state, 'a', 'aa', "Capture chapter name (a/aa)")
+        chapter_name = get_name(shared_state, 'a', 'aa', "Capture chapter name ([bold green]a[/bold green]/[bold green]aa[/bold green])")
 
         with shared_state.lock:
             shared_state.current_chapter_index += 1
@@ -409,7 +482,7 @@ def main():
                 "sections": []
             })
 
-        section_name = get_name(shared_state, 'd', 'dd', "Capture section name (d/dd)")
+        section_name = get_name(shared_state, 'd', 'dd', "Capture section name ([bold green]d[/bold green]/[bold green]dd[/bold green])")
         keyboard_listener.set_context("main")
 
         with shared_state.lock:
@@ -431,23 +504,27 @@ def main():
                 "extracted-code": ""
             })
 
-        print(f"\nStarted New Chapter: '{chapter_name}' (ID: {chapter_id})\nCurrent Section: '{section_name}' (ID: {section_id})")
+        console.print(Panel(
+            f"Started New Chapter: '[bold]{chapter_name}[/bold]' (ID: {chapter_id})\n"
+            f"Current Section: '[bold]{section_name}[/bold]' (ID: {section_id})",
+            style="bold green"
+        ))
 
     elif choice == 'existing':
         json_file_path = input("Enter the path to the existing JSON file: ").strip()
         if not os.path.isfile(json_file_path):
-            print(f"File not found: {json_file_path}")
+            console.print(f"[bold red]File not found:[/bold red] {json_file_path}")
             return
 
         with open(json_file_path, 'r') as f:
             try:
                 shared_state.data = json.load(f)
             except json.JSONDecodeError:
-                print("Invalid JSON file.")
+                console.print("[bold red]Invalid JSON file.[/bold red]")
                 return
 
         if not shared_state.data.get("New item", {}).get("chapters"):
-            print("The JSON file has no chapters or invalid format.")
+            console.print("[bold red]The JSON file has no chapters or invalid format.[/bold red]")
             return
 
         keyboard_listener = KeyboardListener(shared_state)
@@ -457,42 +534,49 @@ def main():
             shared_state.current_chapter_index = len(shared_state.data["New item"]["chapters"]) - 1
             chapter = shared_state.data["New item"]["chapters"][shared_state.current_chapter_index]
             if not chapter.get("sections"):
-                print("The last chapter has no sections.")
+                console.print("[bold red]The last chapter has no sections.[/bold red]")
                 return
             shared_state.current_section_index = len(chapter["sections"]) - 1
             section = chapter["sections"][shared_state.current_section_index]
             shared_state.current_section_path = section["section_path"]
             if not os.path.exists(shared_state.current_section_path):
                 os.makedirs(shared_state.current_section_path, exist_ok=True)
-            print(f"\nResuming from Chapter: '{chapter['chapter_name']}' (ID: {chapter['chapter_id']})")
-            print(f"Current Section: '{section['section_name']}' (ID: {section['section_id']})")
+            console.print(Panel(
+                f"Resuming from Chapter: '[bold]{chapter['chapter_name']}[/bold]' (ID: {chapter['chapter_id']})\n"
+                f"Current Section: '[bold]{section['section_name']}[/bold]' (ID: {section['section_id']})",
+                style="bold green"
+            ))
     else:
-        print("Invalid choice. Please enter 'new' or 'existing'.")
+        console.print("[bold red]Invalid choice. Please enter 'new' or 'existing'.[/bold red]")
         return
 
     event_handler = ScreenshotHandler(shared_state, json_file_path)
 
     def signal_handler(signum, frame):
-        print("\nReceived interrupt signal. Cleaning up...")
+        console.print("\n[bold red]Received interrupt signal. Cleaning up...[/bold red]")
         cleanup_and_quit(shared_state, json_file_path, keyboard_listener)
 
     signal.signal(signal.SIGINT, signal_handler)
 
     try:
         keyboard_listener.set_context("main")
-        print("\nReady for commands! Press keys without Enter:")
-        print(" s: Screenshot")
-        print(" w: Code Screenshot")
-        print(" r: New Section")
-        print(" c: New Chapter")
-        print(" q: Quit")
+        console.print(Panel(
+            "[bold]Ready for commands! Press keys without Enter:[/bold]\n\n"
+            " [green]s[/green]: Screenshot\n"
+            " [green]w[/green]: Code Screenshot\n"
+            " [green]r[/green]: New Section\n"
+            " [green]c[/green]: New Chapter\n"
+            " [green]q[/green]: Quit",
+            title="Command Overview",
+            style="bold magenta"
+        ))
 
         while shared_state.running:
             try:
                 cmd = shared_state.command_queue.get(timeout=0.1)
 
                 if cmd == 'q':
-                    print("\nQuit command received. Starting cleanup process...")
+                    console.print("[bold red]\nQuit command received. Starting cleanup process...[/bold red]")
                     cleanup_and_quit(shared_state, json_file_path, keyboard_listener)
                     break
 
@@ -500,25 +584,31 @@ def main():
                     unique_name = f"{uuid.uuid4()}.png"
                     with shared_state.lock:
                         if shared_state.current_section_path is None:
-                            print("No active section to add the image.")
+                            console.print("[bold red]No active section to add the image.[/bold red]")
                             continue
                         image_path = os.path.join(shared_state.current_section_path, unique_name)
                     if capture_screenshot_mac(image_path):
-                        threading.Thread(target=event_handler.add_image_to_section, args=(image_path,)).start()
+                        threading.Thread(
+                            target=event_handler.add_image_to_section,
+                            args=(image_path,)
+                        ).start()
                     else:
-                        print("Failed to capture the screenshot.")
+                        console.print("[bold red]Failed to capture the screenshot.[/bold red]")
 
                 elif cmd == 'w':
                     unique_name = f"{uuid.uuid4()}.png"
                     with shared_state.lock:
                         if shared_state.current_section_path is None:
-                            print("No active section to add the image.")
+                            console.print("[bold red]No active section to add the image.[/bold red]")
                             continue
                         image_path = os.path.join(shared_state.current_section_path, unique_name)
                     if capture_screenshot_mac(image_path):
-                        threading.Thread(target=event_handler.add_image_to_section, args=(image_path, 'code_images')).start()
+                        threading.Thread(
+                            target=event_handler.add_image_to_section,
+                            args=(image_path, 'code_images')
+                        ).start()
                     else:
-                        print("Failed to capture the screenshot.")
+                        console.print("[bold red]Failed to capture the screenshot.[/bold red]")
 
                 elif cmd == 'r':
                     handle_section_creation(shared_state, keyboard_listener, json_file_path)
@@ -531,8 +621,9 @@ def main():
 
     finally:
         if shared_state.running:
-            print("\nUnexpected termination. Running emergency cleanup...")
+            console.print("[bold red]\nUnexpected termination. Running emergency cleanup...[/bold red]")
             cleanup_and_quit(shared_state, json_file_path, keyboard_listener)
+
 
 if __name__ == "__main__":
     main()

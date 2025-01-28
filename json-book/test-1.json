@@ -1,0 +1,47 @@
+{
+    "New item": {
+        "chapters": [
+            {
+                "chapter_id": 1,
+                "chapter_name": "Capture name:\na: Capture chapter name\nd: Capture section name",
+                "chapter_path": "./screenshots-images-2/chapter_1",
+                "sections": [
+                    {
+                        "section_id": 1.1,
+                        "section_name": "Capture name:\na: Capture chapter name\nd: Capture section name",
+                        "section_path": "./screenshots-images-2/chapter_1/section_1",
+                        "images": [
+                            "./screenshots-images-2/chapter_1/section_1/a67bba7b-3280-449d-90a8-df40582a59c3.png",
+                            "./screenshots-images-2/chapter_1/section_1/034828cf-a77c-47bb-b02f-694e8a76eea4.png"
+                        ],
+                        "code_images": [],
+                        "status": "images tested ok",
+                        "errors": [],
+                        "extracted-text": "\u2014\u2014\u2014\u2014 ee\n\u2018apture screenshot\n\u2018apture code screenshot\nlew section\n\nlew chapter\n\nuit program\n\n2nshot\nscreenshot\n",
+                        "extracted-code": ""
+                    },
+                    {
+                        "section_id": 1.2,
+                        "section_name": "m code images...\n\noe \u2014\u2014\u2014\u2014\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014_\u2014\n\nng Section: \u2018Capture name:\nr name\nnm name' (ID: 1.1)",
+                        "section_path": "./screenshots-images-2/chapter_1/section_2",
+                        "images": [
+                            "./screenshots-images-2/chapter_1/section_2/311e1222-2a6e-4b29-bc0a-9e7788c06b00.png",
+                            "./screenshots-images-2/chapter_1/section_2/16447453-cbde-46c1-bcd9-ad785e5586d9.png",
+                            "./screenshots-images-2/chapter_1/section_2/3914921e-ef77-4f9c-9e1a-f2e3d0468680.png",
+                            "./screenshots-images-2/chapter_1/section_2/a7e180e8-667b-4d5d-b8bd-c85d483ea910.png",
+                            "./screenshots-images-2/chapter_1/section_2/dd60606b-1248-4f70-91f6-7c38224f9237.png",
+                            "./screenshots-images-2/chapter_1/section_2/7bde6616-e9aa-4ed6-8836-7eb43a3b8efc.png"
+                        ],
+                        "code_images": [
+                            "./screenshots-images-2/chapter_1/section_2/6816ca14-6c31-410d-8bba-0822292ac4e1.png"
+                        ],
+                        "status": "images tested ok",
+                        "errors": [],
+                        "extracted-text": "",
+                        "extracted-code": ""
+                    }
+                ]
+            }
+        ]
+    }
+}
