@@ -1,0 +1,32 @@
+Chapter: Core PyTorch
+Section: Core PyTorch
+Rewritten Text:
+Welcome to the first section of this book. Here, we will begin our journey with PyTorch, acquiring the essential skills needed to comprehend its structure and the intricacies involved in a PyTorch project.
+
+In Chapter 1, we will make our initial introduction to PyTorch, exploring its functionalities and the challenges it addresses, as well as its relationship to other deep learning frameworks. Chapter 2 will offer a hands-on experience with models that have been pretrained on engaging tasks. Chapter 3 shifts focus to the fundamental data structure utilized in PyTorch: the tensor. In Chapter 4, we will further explore different methods of representing data from various domains as PyTorch tensors. Chapter 5 will reveal how programs learn from examples and outline how PyTorch facilitates this learning process. Chapter 6 lays the groundwork for understanding neural networks and teaches us how to create a neural network using PyTorch. Chapter 7 will guide us through a straightforward image classification problem using a neural network architecture. Finally, Chapter 8 will demonstrate how to approach the same problem more effectively by utilizing a convolutional neural network.
+
+By the conclusion of this first part, we will be well-equipped to address real-world problems using PyTorch in the second part of the book.
+
+==================================================
+
+Chapter: Introducing deep
+learning and the
+PyTorch Library
+Section: Introducing deep
+learning and the
+PyTorch Library
+Rewritten Text:
+The term "artificial intelligence" encompasses a broad range of fields that have experienced extensive research, debate, confusion, exaggerated excitement, and even fear inspired by science fiction. However, the reality is much more straightforward. It would be misleading to claim that today's machines are capable of "thinking" in a human-like manner. Instead, we’ve developed a category of algorithms that can effectively approximate intricate, nonlinear processes, enabling us to automate tasks that were once the exclusive purview of humans.
+
+A prime example is the language model GPT-2, accessible at https://talktotransformer.com, which can generate coherent paragraphs of text one word at a time. When we input this very paragraph, the model produced the following:
+
+"Next, we'll input a list of phrases derived from a collection of email addresses to see if the program can interpret them as sentences. While this task is much more intricate than the initial search discussed, it should help illustrate the fundamentals of constructing sentence structures across various programming languages."
+
+This output, although lacking a clear thesis, is surprisingly coherent for a machine.
+
+What’s even more remarkable is that these capabilities, once thought to be exclusive to humans, are gained through examples rather than being explicitly programmed via a set of predefined rules. This indicates that our understanding of intelligence is often muddled with the idea of self-awareness, which isn’t necessary for effectively performing these tasks. Ultimately, the significance of computer intelligence itself may not even be pertinent. Edsger W. Dijkstra famously remarked that the question of whether machines can think is "about as relevant as whether submarines can swim."
+
+The class of algorithms we are discussing falls under the AI subfield known as deep learning, which focuses on training mathematical constructs known as deep neural networks through examples. Deep learning leverages vast amounts of data to approximate complex functions whose inputs and outputs are significantly different, such as an image paired with a textual description or a written script linked to a natural-sounding voice. For instance, it can determine that an image of a golden retriever corresponds to the label “Yes, a golden retriever is present.” This capability allows us to develop applications with functionalities that were, until very recently, the sole domain of human beings.
+
+==================================================
+
