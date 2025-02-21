@@ -1,4 +1,5 @@
 import os
+import argparse
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -12,18 +13,16 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-def delete_completed_or_failed_batches():
+def cancel_batch(batch_id):
     try:
-        batches = client.batches.list()
-        for batch in batches:
-            if batch.status in ["completed", "failed"]:
-                try:
-                    response = client.batches.delete(batch.id)
-                    print(f"Deleted batch {batch.id} with status {batch.status}")
-                except Exception as e:
-                    print(f"Failed to delete batch {batch.id}: {e}")
+        response = client.batches.cancel(batch_id)
+        print(f"Canceled batch {batch_id} with new status: {response.status}")
     except Exception as e:
-        print(f"Error listing batches: {e}")
+        print(f"Failed to cancel batch {batch_id}: {e}")
 
 if __name__ == "__main__":
-    delete_completed_or_failed_batches()
+    parser = argparse.ArgumentParser(description="Cancel an OpenAI batch by ID")
+    parser.add_argument("batch_id", help="The batch ID to cancel")
+    args = parser.parse_args()
+
+    cancel_batch(args.batch_id)

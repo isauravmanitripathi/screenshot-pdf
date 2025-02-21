@@ -68,7 +68,7 @@ def process_json_and_update_with_checks(file_path, middle_file):
                             model="gpt-4o-mini",
                             messages=[
                                 {"role": "system", "content": "You are an assistant that expands on the key points to provide a detailed explanation."},
-                                {"role": "user", "content": f"Based on these key points, please write paragraphs as if they are part of an article. Exclude introductions or summaries, focus only on detailed, informative content:\n\n{key_points}"}
+                                {"role": "user", "content": f"Based on these key points, please write paragraphs as if they are part of an article. Write about 2000 words, i want very long proper text, plus add information regarding the topic, to make it more informative. Exclude introductions or summaries, focus only on detailed, informative content:\n\n{key_points}"}
                             ]
                         )
                         final_message = second_response.choices[0].message.content
